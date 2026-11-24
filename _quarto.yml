@@ -1,0 +1,27 @@
+
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Lifestyle and Dietary Factors Associated with Obesity Levels"
+  navbar:
+    title: "Obesity Capstone"
+    left:
+      - href: index.qmd
+        text: Home
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
