@@ -39,6 +39,8 @@ The data used in this study were obtained from the UCI Machine Learning Reposito
 
 The dataset contains 2,111 observations and 17 variables. It represents individuals from Mexico, Peru, and Colombia. Importantly, approximately 77% of the records were synthetically generated using the Synthetic Minority Over-sampling Technique (SMOTE), while the remaining 23% were collected through an online survey (Estimation of Obesity Levels Based on Eating Habits and Physical Condition, 2019; Chawla et al., 2002). Therefore, the observations should not be interpreted as 2,111 independently recruited study participants.
 
+The dataset is publicly available through the UCI Machine Learning Repository under the [Creative Commons Attribution 4.0 International (CC BY 4.0) license](https://creativecommons.org/licenses/by/4.0/). This license permits reuse, sharing, and adaptation with appropriate attribution. No restricted data were used or published in this project.
+
 ## Outcome Variable
 
 The outcome variable is `NObeyesdad`, an ordered categorical variable with seven levels:
