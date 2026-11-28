@@ -1,8 +1,9 @@
+
 ---
 title: "Lifestyle and Dietary Factors Associated with Obesity Levels"
 subtitle: "An Ordinal Logistic Regression Analysis"
 author: "Marjan Nikbakhtzadeh"
-date: "November 2026"
+date: "November 27, 2026"
 format:
   html:
     toc: true
@@ -14,51 +15,70 @@ format:
 
 ## Background
 
-Obesity is a major public health concern associated with multiple demographic, dietary, and lifestyle factors. Understanding the factors associated with different obesity levels may contribute to a better understanding of behavioral and health-related patterns.
+Obesity is a major public health concern associated with a combination of demographic, dietary, and lifestyle factors. Understanding how these factors are associated with different obesity levels is important for identifying behavioral and health-related patterns. Examining these relationships may contribute to a better understanding of the factors associated with obesity classification.
 
 ## Research Question
 
-To what extent are demographic characteristics, dietary habits, and lifestyle factors associated with ordered obesity levels among individuals from Mexico, Peru, and Colombia?
+How are demographic characteristics, dietary habits, and lifestyle factors associated with ordered obesity levels among records in the UCI dataset representing individuals from Mexico, Peru, and Colombia?
 
 ## Research Objectives
 
 The objectives of this study are to:
 
-1.  Describe the distribution of obesity levels in the dataset.
-2.  Examine demographic, dietary, and lifestyle characteristics.
-3.  Evaluate associations between these characteristics and ordered obesity levels.
-4.  Compare ordinal logistic regression models.
-5.  Assess model assumptions and diagnostic results.
+1. Describe the distribution of obesity levels in the dataset.
+2. Examine demographic, dietary, and lifestyle characteristics.
+3. Evaluate associations between age, gender, family history of overweight, dietary habits, physical activity, and technology use with ordered obesity levels.
+4. Compare ordinal logistic regression models to evaluate the contribution of different groups of predictors.
+5. Assess model assumptions and diagnostic results.
 
 # Methods
 
 ## Data Source
 
-The data are obtained from the UCI Machine Learning Repository: Estimation of Obesity Levels Based on Eating Habits and Physical Condition.
+The data used in this study were obtained from the UCI Machine Learning Repository from the dataset titled *Estimation of Obesity Levels Based on Eating Habits and Physical Condition* (Estimation of Obesity Levels Based on Eating Habits and Physical Condition, 2019).
 
-The dataset contains 2,111 observations and 17 variables.
+The dataset contains 2,111 observations and 17 variables. It represents individuals from Mexico, Peru, and Colombia. Importantly, approximately 77% of the records were synthetically generated using the Synthetic Minority Over-sampling Technique (SMOTE), while the remaining 23% were collected through an online survey (Estimation of Obesity Levels Based on Eating Habits and Physical Condition, 2019; Chawla et al., 2002). Therefore, the observations should not be interpreted as 2,111 independently recruited study participants.
 
 ## Outcome Variable
 
-The outcome variable is `NObeyesdad`, an ordered categorical variable with seven levels, ranging from insufficient weight to obesity type III.
+The outcome variable is `NObeyesdad`, an ordered categorical variable with seven levels:
+
+1. Insufficient Weight
+2. Normal Weight
+3. Overweight Level I
+4. Overweight Level II
+5. Obesity Type I
+6. Obesity Type II
+7. Obesity Type III
+
+These categories represent an ordered progression from insufficient weight to higher obesity classifications and were treated as an ordered factor in the ordinal logistic regression analyses.
 
 ## Statistical Analysis
 
-Ordinal logistic regression will be used to examine the associations between demographic, dietary, and lifestyle factors and obesity levels.
+Ordinal logistic regression was used to examine the associations between demographic, dietary, and lifestyle factors and ordered obesity levels. The analysis was conducted using the cumulative link model approach implemented in the `ordinal` package in R (Christensen, 2026; R Core Team, 2026).
 
-Model comparison, parameter estimation, and diagnostic assessment will be conducted.
+Four nested cumulative link models were considered:
+
+- **M0:** An intercept-only model, used as the baseline.
+- **M1:** Included demographic characteristics: age, gender, and family history of overweight.
+- **M2:** Extended M1 by adding dietary variables: frequent consumption of high-calorie food (FAVC), vegetable consumption (FCVC), number of main meals (NCP), consumption of food between meals (CAEC), daily water consumption (CH2O), and monitoring of calorie consumption (SCC).
+- **M3:** Extended M2 by adding physical activity (FAF) and time spent using technological devices (TUE).
+
+The models were compared to examine whether adding groups of predictors improved model fit. Model fit was evaluated using log-likelihood, Akaike Information Criterion (AIC), Bayesian Information Criterion (BIC), and likelihood-ratio tests where appropriate.
+
+Parameter estimates were interpreted using odds ratios and their confidence intervals. Model assumptions and diagnostic results were also examined.
 
 ## Data Preparation
 
-The dataset was obtained from the UCI Machine Learning Repository and imported into R using the `readr` package.
-
-The dataset contains 2,111 observations and 17 variables. No missing values were identified during the initial data inspection.
+The dataset was imported into R using the `readr` package. Initial data inspection confirmed that the dataset contained 2,111 observations and 17 variables, with no missing values found.
 
 The outcome variable, `NObeyesdad`, was converted into an ordered factor with seven levels, ranging from Insufficient Weight to Obesity Type III.
 
-The variables `Height` and `Weight` were excluded from the primary regression models because body-size information is directly related to the construction of obesity categories. Including these variables could introduce target leakage.
+The variables `Height` and `Weight` were excluded from the primary regression models because body-size information is directly related to the construction of obesity categories. Including these variables could introduce target leakage and result in overly optimistic model performance.
 
 ## Analytical Dataset
+
+The dataset was imported into R using the `readr` package. Its dimensions and completeness were examined to verify the number of observations, variables, and missing values. The frequency and percentage of observations in each obesity category were also calculated to describe the distribution of the outcome variable.
 
 ```{r}
 # Load required packages
@@ -93,25 +113,64 @@ dim(obesity_data)
 
 # Check missing values
 sum(is.na(obesity_data))
-```
 
-### Distribution of Obesity Levels
-
-The frequency and percentage of observations in each obesity category were calculated to describe the distribution of the ordinal outcome.
-
-```{r}
+# Calculate the frequency and percentage of each obesity category
 obesity_distribution <- obesity_data |>
   count(NObeyesdad) |>
   mutate(
     Percentage = round(100 * n / sum(n), 2)
   )
-
-knitr::kable(
-  obesity_distribution,
-  col.names = c("Obesity Level", "Frequency", "Percentage (%)"),
-  caption = "Distribution of the Seven Obesity Categories"
-)
 ```
+
+## Define Dietary and Lifestyle Variables
+
+```{r}
+# Define categorical dietary and lifestyle variables
+categorical_vars <- c(
+  "FAVC",
+  "CAEC",
+  "SMOKE",
+  "SCC",
+  "CALC",
+  "MTRANS"
+)
+
+# Define numerical or ordinal-coded variables
+numeric_vars <- c(
+  "FCVC",
+  "NCP",
+  "CH2O",
+  "FAF",
+  "TUE"
+)
+
+# Convert categorical predictors to factors
+obesity_data <- obesity_data |>
+  mutate(
+    Gender = factor(Gender),
+    family_history_with_overweight =
+      factor(family_history_with_overweight),
+    FAVC = factor(FAVC),
+    CAEC = factor(CAEC),
+    SMOKE = factor(SMOKE),
+    SCC = factor(SCC),
+    CALC = factor(CALC),
+    MTRANS = factor(MTRANS)
+  )
+
+# Check the structure of the analytical dataset
+str(obesity_data)
+
+# Check whether the outcome variable is ordered
+is.ordered(obesity_data$NObeyesdad)
+
+# Check the levels of the outcome variable
+levels(obesity_data$NObeyesdad)
+```
+
+# Results
+
+## Descriptive Statistics
 
 ### Figure 1. Distribution of Obesity Levels
 
@@ -137,7 +196,7 @@ The dataset included 2,111 observations distributed across seven ordered obesity
 
 The distribution was relatively balanced across the seven outcome categories, with percentages ranging from 12.9% to 16.6%.
 
-## Sample Characteristics
+### Sample Characteristics
 
 The demographic characteristics of the observations are summarized in Table 1.
 
@@ -194,60 +253,9 @@ knitr::kable(
   caption = "Table 1C. Family History of Overweight"
 )
 ```
+The mean age was 24.31 years (SD = 6.35), with a median of 22.78 years and an age range of 14 to 61 years. The dataset included 1,043 female observations (49.4%) and 1,068 male observations (50.6%). A family history of overweight was reported in 1,726 observations (81.8%).
 
-The mean age was 24.31 years (SD to be calculated), with a median of 22.78 years and an age range of 14 to 61 years. The sample included 1,043 females (49.4%) and 1,068 males (50.6%). A family history of overweight was reported in 1,726 observations (81.8%).}
-
-### Define Dietary and Lifestyle Variables
-
-```{r}
-# Define categorical dietary and lifestyle variables
-categorical_vars <- c(
-  "FAVC",
-  "CAEC",
-  "SMOKE",
-  "SCC",
-  "CALC",
-  "MTRANS"
-)
-
-# Define numerical or ordinal-coded variables
-numeric_vars <- c(
-  "FCVC",
-  "NCP",
-  "CH2O",
-  "FAF",
-  "TUE"
-)
-
-# Convert categorical predictors to factors
-
-obesity_data <- obesity_data |>
-  mutate(
-    Gender = factor(Gender),
-    family_history_with_overweight =
-      factor(family_history_with_overweight),
-    FAVC = factor(FAVC),
-    CAEC = factor(CAEC),
-    SMOKE = factor(SMOKE),
-    SCC = factor(SCC),
-    CALC = factor(CALC),
-    MTRANS = factor(MTRANS)
-  )
-
-# Check the structure of the analytical dataset
-
-str(obesity_data)
-
-# Check whether the outcome variable is ordered
-
-is.ordered(obesity_data$NObeyesdad)
-
-# Check the levels of the outcome variable
-
-levels(obesity_data$NObeyesdad)
-```
-
-## Dietary and Lifestyle Characteristics
+### Dietary and Lifestyle Characteristics
 
 ```{r}
 categorical_summary <- do.call(
@@ -272,41 +280,22 @@ knitr::kable(
     "Frequency",
     "Percentage (%)"
   ),
-  caption = "Table 2. Categorical Dietary and Lifestyle Characteristics"
+  caption = "Table 2A. Categorical Dietary and Lifestyle Characteristics"
 )
 ```
+
+Regarding dietary and lifestyle characteristics, frequent consumption of high-calorie foods was reported in 88.4% of observations. Eating between meals sometimes was the most common response for CAEC (83.6%), while the response "Sometimes" was the most frequently reported category for alcohol consumption (CALC; 66.4%). Public transportation was the most commonly reported mode of transportation (74.9%), and only 2.1% of observations were classified as current smokers.
 
 ### Descriptive Statistics for Dietary and Lifestyle Variables
 
 ```{r}
-numeric_summary <- do.call(
-  rbind,
-  lapply(numeric_vars, function(v) {
-    x <- obesity_data[[v]]
-
-    data.frame(
-      Variable = v,
-      Mean = mean(x),
-      SD = sd(x),
-      Median = median(x),
-      Q1 = unname(quantile(x, 0.25)),
-      Q3 = unname(quantile(x, 0.75)),
-      Minimum = min(x),
-      Maximum = max(x)
-    )
-  })
-)
-```
-
-```{### Descriptive Statistics for Dietary and Lifestyle Variables}
-{r}
 # Table 2B: Descriptive statistics for numerical variables
 
 numeric_summary <- do.call(
   rbind,
   lapply(numeric_vars, function(v) {
     x <- obesity_data[[v]]
-    
+
     data.frame(
       Variable = v,
       Mean = mean(x),
@@ -339,30 +328,17 @@ knitr::kable(
 )
 ```
 
-# Result
+The descriptive statistics showed variation across the numerical and ordinal-coded dietary and lifestyle variables. FCVC had a mean of 2.42 (SD = 0.53), while NCP had a mean of 2.69 (SD = 0.78). The mean water consumption score (CH2O) was 2.01 (SD = 0.61). Physical activity (FAF) had a mean score of 1.01 (SD = 0.85), and technology use (TUE) had a mean score of 0.66 (SD = 0.61).
 
-### Descriptive Statistics
-
-The analytical dataset consisted of 2,111 observations and 17 variables, including demographic, dietary, lifestyle, and obesity-related measures. The outcome variable, obesity level, was classified into seven ordered categories.
-
-The distribution of observations across the seven obesity categories was relatively balanced, with category frequencies ranging from 272 to 351 participants. No missing values were identified in the analytical dataset.
-
-The sample included 1,043 females (49.4%) and 1,068 males (50.6%). The mean age was 24.31 years (SD = 6.35), with a median age of 22.78 years and a range of 14 to 61 years. Most participants (81.8%) reported a family history of overweight.
-
-Regarding dietary and lifestyle characteristics, 88.4% reported frequent consumption of high-calorie foods, while public transportation was the most frequently reported mode of transportation (74.9%). Most participants reported consuming alcohol sometimes (66.4%) and eating between meals sometimes (83.6%). Only 2.1% reported smoking.
-
-### Ordinal Logistic Regression Models
+## Ordinal Logistic Regression Models
 
 To investigate the associations between demographic characteristics, dietary habits, and lifestyle factors and obesity levels, cumulative link ordinal logistic regression models were fitted using the `clm()` function from the `ordinal` package.
 
 Four nested models were specified to evaluate the incremental contribution of different groups of predictors. The outcome variable, `NObeyesdad`, was treated as an ordered categorical variable with seven levels.
 
 - **M0 (Null model):** Included no predictors.
-
 - **M1 (Demographic model):** Included age, gender, and family history of overweight.
-
 - **M2 (Dietary model):** Added dietary variables to the demographic predictors.
-
 - **M3 (Expanded model):** Further included physical activity and technology-use variables.
 
 Model fit was compared using the log-likelihood, Akaike Information Criterion (AIC), Bayesian Information Criterion (BIC), and likelihood ratio tests for nested models.
@@ -443,7 +419,7 @@ knitr::kable(
 
 ### Likelihood Ratio Tests
 
-Likelihood ratio tests indicated that the addition of demographic predictors significantly improved model fit (M1 vs. M0: χ²(3) = 689.30, p \< .001). Adding dietary predictors further improved fit (M2 vs. M1: χ²(8) = 577.18, p \< .001). The inclusion of physical activity and technology-use variables also resulted in a significant improvement (M3 vs. M2: χ²(2) = 92.06, p \< .001).
+Likelihood ratio tests indicated that the addition of demographic predictors significantly improved model fit (M1 vs. M0: χ²(3) = 689.30, p < .001). Adding dietary predictors further improved fit (M2 vs. M1: χ²(8) = 577.18, p < .001). The inclusion of physical activity and technology-use variables also resulted in a significant improvement (M3 vs. M2: χ²(2) = 92.06, p < .001).
 
 ```{r}
 # Likelihood ratio tests for nested models
@@ -458,27 +434,18 @@ anova(M1, M2)
 anova(M2, M3)
 ```
 
+Overall, model fit improved progressively as additional groups of predictors were incorporated. M3 demonstrated the best relative fit among the four candidate models, with the lowest AIC and BIC values. Likelihood ratio tests also indicated that each successive model provided a statistically significant improvement in fit compared with the preceding model (all p < .001).
+
 ### Model Comparison
 
 Four nested cumulative link ordinal logistic regression models were fitted to examine the associations between demographic, dietary, and lifestyle characteristics and obesity levels.
 
-Model fit improved progressively as additional predictor groups were introduced. The AIC decreased from 8213.63 for the null model (M0) to 7530.33 for M1, 6969.15 for M2, and 6881.09 for M3. Similarly, the BIC decreased from 8247.56 for M0 to 6988.53 for M3.
+Model fit improved progressively as additional predictor groups were introduced. The AIC decreased from 8213.63 for the null model (M0) to 7530.33 for M1, 6969.15 for M2, and 6881.09 for M3. Similarly, the BIC decreased from 8247.56 for M0 to 7581.23 for M1, 7065.29 for M2, and 6988.53 for M3.
 
 Among the four candidate models, M3 had the lowest AIC and BIC, indicating the best relative fit according to these criteria.
 
 ### Regression Coefficients and Odds Ratios
 
-Interpretation of Regression Coefficients:
-
-The expanded model (M3) identified several significant associations between demographic, dietary, and lifestyle characteristics and obesity levels.
-
-Age was positively associated with higher obesity levels (OR = 1.04, 95% CI: 1.02–1.05, p \< .001). Family history of overweight showed the strongest positive association among the included predictors (OR = 9.55, 95% CI: 7.47–12.20, p \< .001). Frequent consumption of high-calorie foods was also positively associated with higher obesity levels (OR = 2.17, 95% CI: 1.69–2.79, p \< .001).
-
-Among dietary variables, higher FCVC, NCP, and CH2O values were positively associated with obesity levels. Compared with the reference category of eating between meals always, the categories Frequently, no, and Sometimes showed different associations with obesity levels. Calorie monitoring (SCC = yes) was negatively associated with higher obesity levels (OR = 0.46, 95% CI: 0.30–0.70, p \< .001).
-
-Physical activity (FAF) and technology use (TUE) were also negatively associated with higher obesity levels (FAF: OR = 0.65, 95% CI: 0.59–0.71, p \< .001; TUE: OR = 0.80, 95% CI: 0.70–0.91, p \< .001). Gender was not significantly associated with obesity levels after adjustment for the other predictors (OR = 0.87, 95% CI: 0.73–1.02, p = .089).
-
-These associations should be interpreted cautiously because the proportional odds assumption was not supported by the diagnostic assessment.
 
 ```{r}
 # Extract model coefficients and confidence intervals
@@ -510,10 +477,10 @@ M3_OR_report <- M3_OR_table |>
   mutate(
     OR = round(OR, 2),
     CI_95 = paste0(
-      round(OR_CI_low, 2),
-      "–",
-      round(OR_CI_high, 2)
-    ),
+  sprintf("%.2f", OR_CI_low),
+  "–",
+  sprintf("%.2f", OR_CI_high)
+),
     p_value = ifelse(
       p.value < 0.001,
       "< .001",
@@ -532,6 +499,15 @@ knitr::kable(
   caption = "Table 4. Odds Ratios and 95% Confidence Intervals for Model M3"
 )
 ```
+For categorical predictors, odds ratios were interpreted relative to their respective reference categories. The reference categories were Female for Gender, no for family history of overweight, no for FAVC, Always for CAEC, and no for SCC.
+
+Interpretation of Regression Coefficients:
+
+The expanded model (M3) identified several associations between demographic, dietary, and lifestyle characteristics and obesity levels. Family history of overweight showed a strong positive association with the ordinal outcome (OR = 9.55, 95% CI: 7.47–12.25, p < .001). Age (OR = 1.04, 95% CI: 1.02–1.05, p < .001) and frequent consumption of high-calorie foods (OR = 2.17, 95% CI: 1.69–2.79, p < .001) were also positively associated with higher obesity categories. 
+
+Other significant associations were observed for FCVC, NCP, CAEC, and CH2O. Physical activity (FAF; OR = 0.65, 95% CI: 0.59–0.71, p < .001), technology use (TUE; OR = 0.80, 95% CI: 0.70–0.91, p < .001), and monitoring calorie intake (SCC; OR = 0.46, 95% CI: 0.30–0.70, p < .001) showed negative associations with the ordinal outcome. Gender was not statistically significant in this model (OR = 0.87, 95% CI: 0.73–1.02, p = .089).
+
+However, these odds ratios are based on the proportional odds specification, which assumes common predictor effects across cumulative outcome thresholds. Since the diagnostic assessment indicated departures from this assumption for most predictors, these estimates should be interpreted cautiously as model-dependent associations rather than uniform effects across all obesity-level thresholds.
 
 ### Assessment of the Proportional Odds Assumption
 
@@ -544,6 +520,8 @@ PO_test <- nominal_test(M3)
 PO_test
 ```
 
+The proportional odds assumption was evaluated using the nominal effects test (`nominal_test`). The results indicated significant departures from the proportional odds assumption for most predictors, including Gender, family history of overweight, FAVC, FCVC, NCP, CAEC, CH2O, SCC, FAF, and TUE (all p < 0.05). These findings suggest that the effects of several predictors may vary across the cumulative thresholds of obesity categories. Consequently, the coefficient estimates and odds ratios from the proportional odds model should be interpreted cautiously. Although M3 demonstrated the best relative fit among the candidate models based on AIC and BIC, the violation of the proportional odds assumption represents an important limitation of the model.
+
 ### Assessment of Scale Effects
 
 ```{r}
@@ -553,9 +531,11 @@ scale_results <- scale_test(M3)
 scale_results
 ```
 
+The scale effects were examined using the `scale_test()` function. The results indicated significant scale effects for Age, Gender, FAVC, FCVC, NCP, CAEC, CH2O, SCC, FAF, and TUE (p < 0.05). In contrast, family history of overweight did not show a statistically significant scale effect (p = 0.764). These findings suggest that the variability in the latent response may differ across levels of several predictors. Therefore, the results provide additional evidence that the standard proportional odds model may not fully capture the underlying structure of the data, and its coefficient estimates should be interpreted cautiously.
+
 ### Assessment of Multicollinearity
 
-Multicollinearity was assessed using Variance Inflation Factors (VIFs). VIF values were examined to identify potential correlations among predictor variables that could affect the stability and interpretation of regression estimates.
+Multicollinearity was assessed using the generalized variance inflation factor (GVIF), calculated from an auxiliary linear model including the predictors used in M3. The adjusted GVIF values were examined to identify potential multicollinearity among the predictor variables.
 
 ```{r}
 # Load the car package
@@ -576,58 +556,56 @@ vif_values <- car::vif(vif_model)
 vif_values
 ```
 
-### Model Diagnostics and Limitations
+Multicollinearity among the predictors was assessed using the generalized variance inflation factor (GVIF), calculated from an auxiliary linear model including the predictors used in M3. For predictors with multiple degrees of freedom, adjusted GVIF values, calculated as GVIF^(1/(2 × Df)), were examined. All adjusted values were close to 1, ranging from 1.028 to 1.095. These values indicate that multicollinearity was not a substantial concern among the predictors included in M3. However, this assessment was supplementary, as the VIF values were obtained from an auxiliary linear model rather than directly from the ordinal logistic regression model.
 
-The diagnostic assessment indicated substantial departures from the proportional odds assumption. The nominal effects test identified evidence of non-proportional effects for several predictors. The scale effects test also suggested that multiple predictors were associated with variation in the latent response scale.
-
-Although the expanded model (M3) demonstrated the lowest AIC and BIC among the candidate proportional odds models, improved relative model fit does not establish that the proportional odds assumption is satisfied. Therefore, the regression estimates should be interpreted cautiously.
-
-The VIF assessment was conducted as a supplementary check for multicollinearity among predictors. These diagnostics were considered when evaluating the strengths and limitations of the fitted model.
-
-**Model Diagnostics**
+### Model Diagnostics
 
 The diagnostic assessment identified substantial violations of the proportional odds assumption in the expanded ordinal logistic regression model (M3). The nominal effects test provided evidence of non-proportional effects for several predictors, suggesting that their associations with obesity levels were not consistent across the cumulative outcome thresholds.
 
-The scale effects test also identified significant scale effects for several predictors, indicating potential differences in the variability of the latent response across predictor values.
+The scale effects test also identified significant scale effects for several predictors, indicating potential differences in the variability of the latent response in relation to these predictors.
 
-The supplementary multicollinearity assessment showed that VIF values were generally low, with no evidence of problematic multicollinearity among the predictors.
+The supplementary multicollinearity assessment showed that adjusted GVIF values were generally close to 1, with no evidence of substantial multicollinearity among the predictors.
 
-Although M3 demonstrated the lowest AIC and BIC among the candidate models, the violation of the proportional odds assumption limits the interpretation of its coefficients as common effects across all cumulative outcome thresholds. Therefore, the model should be considered an exploratory reference model rather than a fully adequate proportional odds model.
+Although M3 demonstrated the lowest AIC and BIC among the candidate models, the violation of the proportional odds assumption limits the interpretation of its coefficients as common effects across all cumulative outcome thresholds. Therefore, M3 should be considered an exploratory reference model rather than a fully adequate proportional odds model.
 
 # Discussion
 
-The present study examined the associations between demographic characteristics, dietary habits, and lifestyle factors and ordered obesity levels using cumulative link ordinal logistic regression models.
+This study examined the associations between demographic, dietary, and lifestyle characteristics and ordered obesity levels in the UCI dataset using cumulative link ordinal regression models.
 
-The findings indicated that demographic and dietary characteristics contributed substantially to the prediction of obesity levels. In particular, family history of overweight showed a strong positive association with higher obesity categories. Age and frequent consumption of high-calorie foods were also positively associated with obesity levels. These findings suggest that both demographic background and dietary characteristics are relevant correlates of obesity classification in this dataset.
+The initial model comparison showed progressive improvements in model fit as demographic, dietary, and lifestyle predictors were added. Among the four candidate models, M3 had the lowest AIC and BIC, indicating the best relative fit among the models examined. However, improved model fit does not necessarily indicate that all model assumptions were satisfied.
 
-Several dietary and lifestyle variables were also associated with obesity levels. Higher values of FCVC, NCP, and CH2O were positively associated with higher obesity categories, whereas physical activity (FAF) and technology use (TUE) showed negative associations. Calorie monitoring was also negatively associated with obesity levels. However, these associations should not be interpreted as causal relationships.
+Diagnostic analyses revealed substantial departures from the proportional odds assumption. The nominal effects test indicated non-proportional effects for several predictors, suggesting that their associations with obesity categories may differ across cumulative outcome thresholds. In addition, the scale effects test identified significant scale effects for most predictors, suggesting potential differences in the variability of the latent response in relation to several predictors. These findings indicate that the standard proportional odds model may not fully capture the relationships between the predictors and the ordered obesity outcome. Nevertheless, the supplementary VIF assessment indicated no substantial multicollinearity among the predictors.
 
-The model comparison results showed progressive improvements in model fit as demographic, dietary, and lifestyle predictors were added. M3 had the lowest AIC and BIC among the four candidate models. Nevertheless, the diagnostic results indicated substantial violations of the proportional odds assumption. Consequently, the estimated odds ratios should be interpreted cautiously because the assumption of common predictor effects across cumulative outcome thresholds was not adequately supported.
+Overall, the findings suggest that demographic, dietary, and lifestyle characteristics were associated with obesity classification in the analyzed dataset. However, because of the diagnostic limitations of the expanded model, its coefficient estimates and odds ratios should be interpreted cautiously. Given the synthetic component of the dataset and the observational nature of the data, the findings should be considered exploratory and should not be interpreted as evidence of causal relationships or generalized directly to the broader population.
 
-### Limitations
+## Limitations
 
 Several limitations should be considered when interpreting these findings.
 
-First, the dataset contains both real-world and synthetically generated observations. According to the UCI Machine Learning Repository, approximately 77% of the observations were generated using the Synthetic Minority Over-sampling Technique (SMOTE), while approximately 23% were collected through an online survey. Therefore, the sample may not represent the broader population, and the findings should not be generalized without caution.
+First, the dataset contains both survey-based and synthetically generated observations. According to the UCI Machine Learning Repository, approximately 77% of the records were generated using the Synthetic Minority Over-sampling Technique (SMOTE), while approximately 23% were collected through an online survey. Therefore, the dataset may not represent the broader population, and the findings should not be generalized without caution.
 
-Second, the proportional odds assumption was substantially violated in the expanded ordinal logistic regression model. Although M3 showed the best relative fit according to AIC and BIC, its coefficient estimates may not adequately represent associations across all cumulative obesity thresholds.
+Second, diagnostic analyses identified substantial violations of the proportional odds assumption in the expanded ordinal logistic regression model. The nominal effects test indicated non-proportional effects for several predictors, suggesting that their associations with obesity categories may differ across cumulative outcome thresholds. In addition, the scale effects test identified significant scale effects for most predictors, suggesting that the variability of the latent response may differ in relation to several predictors. Although M3 showed the best relative fit according to AIC and BIC among the four candidate models, these diagnostic findings limit the interpretation of its coefficient estimates. Nevertheless, the supplementary VIF assessment did not indicate substantial multicollinearity among the predictors.
 
-Third, some categorical predictor levels had very small frequencies. For example, the CALC variable contained only one observation in the Always category. Therefore, CALC was excluded from the primary dietary model to reduce potential estimation instability. Some other variables, including SMOKE and MTRANS, were also not included in the final expanded model.
+Third, some categorical predictor levels had very small frequencies. For example, the CALC variable contained only one observation in the Always category. Therefore, CALC was excluded from the primary dietary model to reduce potential estimation instability. Other variables, including SMOKE and MTRANS, were also not included in the final expanded model.
 
-Finally, the observational nature of the dataset does not allow causal conclusions. The reported associations describe patterns within the available data and do not establish that specific dietary or lifestyle characteristics cause changes in obesity levels.
+Finally, the observational nature of the dataset does not allow causal conclusions. The reported associations describe patterns within the available data and do not establish that specific dietary or lifestyle characteristics cause changes in obesity levels. 
+
+The substantial proportion of synthetically generated records may also affect the estimated associations and statistical uncertainty. Therefore, the reported p-values and confidence intervals should be interpreted cautiously and may not reflect uncertainty in a representative population sample.
 
 # Conclusion
 
-This study examined the associations between demographic, dietary, and lifestyle characteristics and ordered obesity levels using ordinal logistic regression. Family history of overweight, age, dietary characteristics, physical activity, and technology use showed associations with obesity categories in the analyzed dataset.
+This study examined the associations between demographic, dietary, and lifestyle characteristics and ordered obesity levels using ordinal logistic regression. Family history of overweight, age, dietary characteristics, physical activity, and technology use were associated with obesity categories in the analyzed dataset.
 
-The expanded model (M3) provided the best relative fit among the four candidate models based on AIC and BIC. However, substantial violations of the proportional odds assumption limited the interpretation of its estimates. These findings highlight the importance of considering model assumptions and data characteristics when analyzing ordinal outcomes.
+Among the four candidate models, M3 provided the best relative fit based on AIC and BIC. However, diagnostic analyses revealed substantial violations of the proportional odds assumption and significant scale effects for most predictors, limiting the interpretation of its estimates. These findings highlight the importance of evaluating model assumptions and data characteristics when analyzing ordinal outcomes.
 
-Overall, the results provide an exploratory assessment of factors associated with obesity levels in the UCI dataset. Further research using representative population-based data and statistical models that accommodate non-proportional effects is needed to confirm these associations.
+Overall, the results provide an exploratory assessment of factors associated with obesity levels in the UCI dataset. Further research using representative population-based data and statistical models that accommodate non-proportional effects and scale heterogeneity is needed to obtain more reliable estimates of these associations.
 
 # References
 
-Christensen, R. H. B. (2019). *Cumulative link models for ordinal regression with the R package ordinal*. <https://cran.r-project.org/web/packages/ordinal/vignettes/clm_article.pdf>
+Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (2002). SMOTE: Synthetic minority over-sampling technique. *Journal of Artificial Intelligence Research, 16*, 321–357. https://doi.org/10.1613/jair.953
 
-Mendoza, F., & De la Hoz, E. (2019). *Estimation of obesity levels based on eating habits and physical condition* \[Data set\]. UCI Machine Learning Repository. <https://doi.org/10.24432/C5H31Z>
+Christensen, R. H. B. (2026). *ordinal—Regression models for ordinal data* (R package version 2026.7-26). https://CRAN.R-project.org/package=ordinal
 
-R Core Team. (2026). *R: A language and environment for statistical computing*. R Foundation for Statistical Computing. <https://www.R-project.org/>
+Estimation of Obesity Levels Based on Eating Habits and Physical Condition. (2019). *UCI Machine Learning Repository*. https://doi.org/10.24432/C5H31Z
+
+R Core Team. (2026). *R: A language and environment for statistical computing*. R Foundation for Statistical Computing. https://doi.org/10.32614/R.manuals
